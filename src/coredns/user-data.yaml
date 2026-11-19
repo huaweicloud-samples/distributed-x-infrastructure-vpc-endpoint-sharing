@@ -1,0 +1,40 @@
+# CoreDNS 转发器 cloud-init
+# 作用：在 Hub VPC 内把云服务的私有域名查询转发到 Hub 内置 DNS（100.125.0.250），
+# 由其解析出接口终端节点的私有 IP；Spoke 子网 dns_list 首位指向本机私有 IP 即可透明复用。
+# 与 infra/hub.tf 中 coredns 实例的 user_data 作用一致（本文件为 cloud-config 格式，
+# 便于审阅与预置到自定义镜像）。
+#
+# 注意：首次引导安装 CoreDNS 需要出网（enable_nat_gateway=true 或自定义镜像预置）。
+# 100.125.0.250 为华为云 VPC 内置 DNS；若 region 不同请按控制台实际内置 DNS 调整。
+
+#cloud-config
+write_files:
+  - path: /etc/coredns/Corefile
+    permissions: "0644"
+    content: |
+      .:53 {
+          forward . 100.125.0.250
+          cache 30
+          log
+      }
+
+runcmd:
+  - |
+    set -e
+    CORE_DNS_VER=1.11.1
+    if ! command -v /usr/local/bin/coredns >/dev/null 2>&1; then
+      curl -fsSL -o /tmp/coredns.tgz "https://github.com/coredns/coredns/releases/download/v${CORE_DNS_VER}/coredns_${CORE_DNS_VER}_linux_amd64.tgz"
+      tar -xzf /tmp/coredns.tgz -C /tmp
+      install -m 0755 /tmp/coredns /usr/local/bin/coredns
+    fi
+    cat > /etc/systemd/system/coredns.service <<'UNIT'
+    [Unit]
+    Description=CoreDNS forwarder
+    After=network.target
+    [Service]
+    ExecStart=/usr/local/bin/coredns -conf /etc/coredns/Corefile
+    Restart=always
+    [Install]
+    WantedBy=multi-user.target
+    UNIT
+    systemctl enable --now coredns

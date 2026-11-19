@@ -1,0 +1,38 @@
+# ============================================================================
+# 变量示例文件（复制为 terraform.tfvars 后按实际值修改）
+#
+# ⚠️ 不要在本文件中写入 AK/SK；部署前请从华为云“我的凭证”页面获取并设置对应访问参数。
+#     export HW_ACCESS_KEY="<HW_ACCESS_KEY>"
+#     export HW_SECRET_KEY="<HW_SECRET_KEY>"
+#     export HW_REGION_NAME="cn-north-4"
+# ============================================================================
+
+# 目标区域
+region = "cn-north-4"
+
+# 资源命名前缀，便于识别与清理
+name_prefix = "vpc-ep-share"
+
+# ECS 登录密钥对名称（需在目标 region 预先创建）
+key_pair = "<your-key-pair-name>"
+
+# 可用区列表：前三个对应 Hub / Spoke 子网，第四个与第一个一起用于 ER
+availability_zones = ["cn-north-4a", "cn-north-4b", "cn-north-4c", "cn-north-4g"]
+
+# Hub 要托管的接口型终端节点服务 ID 列表
+# 控制台路径：VPC → 终端节点服务 → 公共终端节点服务，按目标 region 查询后填入
+# 留空表示只建 CoreDNS 转发骨架与 ER 互联，不建接口型终端节点
+interface_endpoint_service_ids = [
+  # "<service-id-1>",
+  # "<service-id-2>",
+]
+
+# 是否创建 OBS 网关型终端节点（部分 region 无标准 OBS 网关服务，默认关闭）
+enable_obs_gateway = false
+
+# 是否创建 NAT 网关为 Hub 私有子网提供出网（CoreDNS 首次引导安装需要出网）
+enable_nat_gateway = false
+
+# 跨账号共享 ER（单账号演示留空）
+ram_principals = []
+account_id     = ""
